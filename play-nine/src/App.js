@@ -13,9 +13,8 @@ const Header = (props)=>{
     );
 };
 const Stars=(props)=>{
-  const numOfStars = 1+Math.floor(Math.random()*9);
   let stars=[];
-  for(let i=0;i<numOfStars;i++){
+  for(let i=0;i<props.stars;i++){
     stars.push(<i key={i} className="fa fa-star"></i>);
   }
   return(
@@ -25,11 +24,38 @@ const Stars=(props)=>{
   );
 }
 const Button=(props)=>{
-  return(
-    <div className="col-2">
-      <button>
+  let button;
+  switch(props.answerIsCorrect){
+    case true:
+      button = 
+      <button className="btn btn-success" onClick={props.acceptAnswer}>
+        <i className="fa fa-check"></i>
+      </button>
+      break;
+    case false:
+      button = 
+      <button className="btn btn-danger">
+        <i className="fa fa-times"></i>
+      </button>
+      break;
+    default:
+      button = 
+      <button className="btn" onClick={props.checkAnswer} disabled={props.selectedNumbers.length===0}>
         =
       </button>
+      break;
+  }
+  return(
+    <div>
+      <br/>
+      <div className="col-2">
+        {button}
+        <br/><br/>
+        <button className="btn btn-warning" onClick={props.redraw} disabled={props.redraws===0}>
+          <i className="fa fa-refresh"></i>&nbsp;{props.redraws}
+        </button>
+      </div>
+
     </div>
   );
 }
@@ -37,7 +63,10 @@ const Answer=(props)=>{
   return(
     <div className="col-5">
       {props.selectNumbers.map((number,i)=>
-        <span key={i}>{number}</span>
+        <span 
+          onClick={()=>props.deselectNumber(number)}
+          key={i}>{number}
+        </span>
       )}
     </div>
   );
@@ -45,6 +74,8 @@ const Answer=(props)=>{
 const Numbers=(props)=>{
   const arryOfNums = [1,2,3,4,5,6,7,8,9];
   const numberClass = (number)=>{
+    if(props.usedNumbers.indexOf(number)>=0)
+      return "selected";
     if(props.selectNumbers.indexOf(number)>=0)
       return "used";
   }
@@ -52,7 +83,10 @@ const Numbers=(props)=>{
     <div className="card text-center">
       <div>
         {arryOfNums.map((number,i)=>
-          <span className={numberClass(number)} key={i}>{number}</span>
+          <span 
+            onClick= {()=>props.selectedNumber(number)}
+            className={numberClass(number)} key={i}>{number}
+          </span>
         )}
       </div>
     </div>
@@ -60,20 +94,75 @@ const Numbers=(props)=>{
 }
 class Game extends Component {
   state = {
-    selectedNums : [2,4]
-  }
+    selectedNums : [],
+    numOfStars:1+Math.floor(Math.random()*9),
+    answerIsCorrect:null,
+    usedNumbers : [],
+    redraws:5
+  };
+  selectedNumber = (clickedNumber)=>{
+    if(this.state.selectedNums.indexOf(clickedNumber)>=0) return;
+    this.setState(prevState=>({
+      selectedNums:prevState.selectedNums.concat(clickedNumber),
+      answerIsCorrect:null
+    }));
+  };
+  deselectNumber = (clickedNumber) => {
+    this.setState(prevState=>({
+      selectedNums:prevState.selectedNums.filter(number=>number!==clickedNumber),
+      answerIsCorrect:null
+    }))
+  };
+  checkAnswer = ()=>{
+    this.setState(prevState=>({
+      answerIsCorrect:prevState.numOfStars===prevState.selectedNums.reduce((num,i)=>num+i,0)
+    }));
+  };
+  acceptAnswer = ()=>{
+    this.setState(prevState=>({
+      usedNumbers:prevState.usedNumbers.concat(prevState.selectedNums),
+      selectedNums:[],
+      answerIsCorrect:null,
+      numOfStars:1+Math.floor(Math.random()*9),
+
+    }));
+  };
+  redraw = ()=>{
+    if(this.state.redraws===0) return;
+    this.setState(prevState=>({
+      numOfStars:1+Math.floor(Math.random()*9),
+      selectedNums:[],
+      answerIsCorrect:null,
+      redraws:prevState.redraws-1
+    }))
+  };
+  
   render(){
     return(
       <div>
         <Header />
         <div className="container">
           <div className="row">
-            <Stars />
-            <Button />
-            <Answer selectNumbers={this.state.selectedNums}/>
+            <Stars stars={this.state.numOfStars} />
+            <Button 
+              selectedNumbers={this.state.selectedNums}
+              checkAnswer={this.checkAnswer}
+              answerIsCorrect={this.state.answerIsCorrect}
+              acceptAnswer={this.acceptAnswer}
+              redraw={this.redraw}
+              redraws={this.state.redraws}
+            />
+            <Answer 
+              selectNumbers={this.state.selectedNums}
+              deselectNumber={this.deselectNumber}  
+            />
           </div>
           <br/>
-          <Numbers selectNumbers={this.state.selectedNums}/>
+          <Numbers 
+            selectNumbers={this.state.selectedNums} 
+            selectedNumber={this.selectedNumber}
+            usedNumbers={this.state.usedNumbers}
+          />
         </div>
       </div>
     );
